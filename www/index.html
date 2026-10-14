@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبة الاحتياجات اليومية للمغذيات الكبرى وتخطيط الوجبات</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Cairo & Tajawal -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                        tajawal: ['Tajawal', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            950: '#070b14',
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+            background-color: #070b14;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        /* Custom Glassmorphism */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card-hover {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card-hover:hover {
+            border-color: rgba(255, 255, 255, 0.18);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Custom Range Sliders (RTL friendly) */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 8px;
+            border-radius: 999px;
+            background: #1e293b;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #10b981;
+            border: 3px solid #0f172a;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+
+        input[type="range"]:hover::-webkit-slider-thumb {
+            transform: scale(1.15);
+        }
+
+        input[type="range"].slider-amber::-webkit-slider-thumb {
+            background: #f59e0b;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+        }
+
+        input[type="range"].slider-rose::-webkit-slider-thumb {
+            background: #f43f5e;
+            box-shadow: 0 0 10px rgba(244, 63, 94, 0.6);
+        }
+
+        input[type="range"].slider-sky::-webkit-slider-thumb {
+            background: #0ea5e9;
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.6);
+        }
+
+        /* Circular Progress SVG transitions */
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Subtle background glow */
+        .bg-glow-emerald {
+            background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+        }
+        .bg-glow-amber {
+            background: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+        }
+        .bg-glow-rose {
+            background: radial-gradient(circle at 50% 0%, rgba(244, 63, 94, 0.15) 0%, transparent 70%);
+        }
+
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse-soft {
+            animation: pulse-soft 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen selection:bg-emerald-500 selection:text-white pb-16">
+
+    <!-- Decorative Ambient Background Blobs -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div class="absolute -top-40 -right-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/3 -left-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-40 right-1/4 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- Top Navigation / Header -->
+    <header class="sticky top-0 z-40 glass-card border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                    <i class="fa-solid fa-fire-flame-curved text-slate-950 text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                        ماكرو برو <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Mifflin-St Jeor</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">حاسبة الاحتياجات اليومية للمغذيات الكبرى وتخطيط الوجبات الذكي</p>
+                </div>
+            </div>
+
+            <!-- Quick Navigation Pills & Actions -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <a href="#calculator-section" class="text-xs sm:text-sm px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-emerald-400"></i>
+                    <span>الحاسبة</span>
+                </a>
+                <a href="#meal-splitter-section" class="text-xs sm:text-sm px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-pie text-amber-400"></i>
+                    <span>توزيع الوجبات</span>
+                </a>
+                <a href="#meal-builder-section" class="text-xs sm:text-sm px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-utensils text-rose-400"></i>
+                    <span>مركب الوجبات</span>
+                </a>
+                <button onclick="copySummaryReport()" class="text-xs sm:text-sm px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold transition flex items-center gap-1.5 shadow-lg shadow-emerald-500/20">
+                    <i class="fa-regular fa-copy"></i>
+                    <span class="hidden sm:inline">نسخ الخطة</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toast Notification Box (No alert() used) -->
+    <div id="toast-notification" class="fixed bottom-6 left-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="glass-card border border-emerald-500/40 bg-slate-900/95 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <i id="toast-icon" class="fa-solid fa-check"></i>
+            </div>
+            <p id="toast-message" class="text-sm font-medium">تم تحديث البيانات بنجاح</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
+
+        <!-- SECTION 1 & 2: User Metrics + Daily Summary & Visuals -->
+        <section id="calculator-section" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Right Column in RTL (5 cols): User Metrics & Macro Split Controls -->
+            <div class="lg:col-span-5 space-y-6">
+
+                <!-- Card 1: Personal Body Metrics -->
+                <div class="glass-card rounded-3xl p-5 sm:p-6 shadow-xl">
+                    <div class="flex items-center justify-between mb-5">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                                <i class="fa-solid fa-user-check"></i>
+                            </span>
+                            <h2 class="text-lg font-bold text-white">بيانات الجسم والنشاط</h2>
+                        </div>
+                        <button onclick="resetMetrics()" class="text-xs text-slate-400 hover:text-emerald-400 transition flex items-center gap-1">
+                            <i class="fa-solid fa-rotate-right"></i>
+                            <span>إعادة ضبط</span>
+                        </button>
+                    </div>
+
+                    <!-- Gender Toggle -->
+                    <div class="mb-5">
+                        <label class="block text-xs font-semibold text-slate-400 mb-2">الجنس البيولوجي</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" id="btn-gender-male" onclick="setGender('male')" class="py-3 px-4 rounded-2xl border-2 border-emerald-500 bg-emerald-500/15 text-white font-bold flex items-center justify-center gap-2 transition">
+                                <i class="fa-solid fa-mars text-emerald-400 text-lg"></i>
+                                <span>ذكر</span>
+                            </button>
+                            <button type="button" id="btn-gender-female" onclick="setGender('female')" class="py-3 px-4 rounded-2xl border-2 border-slate-800 bg-slate-900/60 text-slate-400 hover:text-white font-bold flex items-center justify-center gap-2 transition">
+                                <i class="fa-solid fa-venus text-rose-400 text-lg"></i>
+                                <span>أنثى</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sliders: Age, Weight, Height -->
+                    <div class="space-y-4 mb-6">
+                        <!-- Age -->
+                        <div class="bg-slate-900/70 p-3.5 rounded-2xl border border-slate-800/80">
+                            <div class="flex justify-between items-center mb-2">
+                                <label for="input-age" class="text-sm font-semibold text-slate-300 flex items-center gap-1.5">
+                                    <i class="fa-regular fa-calendar text-emerald-400 text-xs"></i> العمر
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="num-age" min="14" max="90" value="26" oninput="syncMetricInput('age', this.value)" class="w-16 bg-slate-800 text-emerald-400 font-bold text-center rounded-lg py-1 text-sm border border-slate-700 focus:outline-none focus:border-emerald-500">
+                                    <span class="text-xs text-slate-400">سنة</span>
+                                </div>
+                            </div>
+                            <input type="range" id="input-age" min="14" max="90" value="26" oninput="syncMetricInput('age', this.value)" class="w-full">
+                        </div>
+
+                        <!-- Weight (kg) -->
+                        <div class="bg-slate-900/70 p-3.5 rounded-2xl border border-slate-800/80">
+                            <div class="flex justify-between items-center mb-2">
+                                <label for="input-weight" class="text-sm font-semibold text-slate-300 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-weight-scale text-amber-400 text-xs"></i> الوزن الحالي
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="num-weight" min="35" max="200" step="0.5" value="78" oninput="syncMetricInput('weight', this.value)" class="w-16 bg-slate-800 text-amber-400 font-bold text-center rounded-lg py-1 text-sm border border-slate-700 focus:outline-none focus:border-amber-500">
+                                    <span class="text-xs text-slate-400">كجم</span>
+                                </div>
+                            </div>
+                            <input type="range" id="input-weight" min="35" max="180" step="0.5" value="78" oninput="syncMetricInput('weight', this.value)" class="w-full slider-amber">
+                        </div>
+
+                        <!-- Height (cm) -->
+                        <div class="bg-slate-900/70 p-3.5 rounded-2xl border border-slate-800/80">
+                            <div class="flex justify-between items-center mb-2">
+                                <label for="input-height" class="text-sm font-semibold text-slate-300 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-ruler-vertical text-sky-400 text-xs"></i> الطول
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="num-height" min="130" max="230" value="176" oninput="syncMetricInput('height', this.value)" class="w-16 bg-slate-800 text-sky-400 font-bold text-center rounded-lg py-1 text-sm border border-slate-700 focus:outline-none focus:border-sky-500">
+                                    <span class="text-xs text-slate-400">سم</span>
+                                </div>
+                            </div>
+                            <input type="range" id="input-height" min="130" max="220" value="176" oninput="syncMetricInput('height', this.value)" class="w-full slider-sky">
+                        </div>
+                    </div>
+
+                    <!-- Activity Level -->
+                    <div class="mb-6">
+                        <label for="select-activity" class="block text-xs font-semibold text-slate-400 mb-2">مستوى النشاط اليومي</label>
+                        <div class="relative">
+                            <select id="select-activity" onchange="calculateAll()" class="w-full bg-slate-900 border border-slate-700/80 rounded-2xl px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:border-emerald-500 appearance-none cursor-pointer">
+                                <option value="1.2">خامل (عمل مكتبي، بدون تمرين - ×1.2)</option>
+                                <option value="1.375">نشاط خفيف (تمرين 1 إلى 3 أيام أسبوعياً - ×1.375)</option>
+                                <option value="1.55" selected>نشاط متوسط (تمرين 3 إلى 5 أيام أسبوعياً - ×1.55)</option>
+                                <option value="1.725">نشاط عالي (تمرين قوي 6 إلى 7 أيام أسبوعياً - ×1.725)</option>
+                                <option value="1.9">نشاط فائق (تمرين مرتين يومياً أو عمل بدني شاق - ×1.9)</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs"></i>
+                        </div>
+                    </div>
+
+                    <!-- Goal Selection -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs font-semibold text-slate-400">الهدف الرئيسي</label>
+                            <span id="goal-modifier-badge" class="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400">سعرات الثبات (0%)</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2.5">
+                            <button type="button" id="btn-goal-cut" onclick="setGoal('cut')" class="goal-btn p-3 rounded-2xl border-2 border-slate-800 bg-slate-900/60 hover:border-slate-700 text-center transition flex flex-col items-center gap-1">
+                                <i class="fa-solid fa-fire text-rose-400 text-base"></i>
+                                <span class="text-xs font-bold text-white">تنشيف</span>
+                                <span class="text-[10px] text-slate-400">خسارة دهون (-20%)</span>
+                            </button>
+                            <button type="button" id="btn-goal-maintain" onclick="setGoal('maintain')" class="goal-btn p-3 rounded-2xl border-2 border-emerald-500 bg-emerald-500/15 text-center transition flex flex-col items-center gap-1">
+                                <i class="fa-solid fa-scale-balanced text-emerald-400 text-base"></i>
+                                <span class="text-xs font-bold text-white">محافظة</span>
+                                <span class="text-[10px] text-emerald-300">ثبات الوزن (0%)</span>
+                            </button>
+                            <button type="button" id="btn-goal-bulk" onclick="setGoal('bulk')" class="goal-btn p-3 rounded-2xl border-2 border-slate-800 bg-slate-900/60 hover:border-slate-700 text-center transition flex flex-col items-center gap-1">
+                                <i class="fa-solid fa-dumbbell text-amber-400 text-base"></i>
+                                <span class="text-xs font-bold text-white">تضخيم</span>
+                                <span class="text-[10px] text-slate-400">بناء عضل (+15%)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Macro Split Presets & Custom Sliders -->
+                <div class="glass-card rounded-3xl p-5 sm:p-6 shadow-xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
+                                <i class="fa-solid fa-sliders"></i>
+                            </span>
+                            <div>
+                                <h2 class="text-lg font-bold text-white">توزيع المغذيات الكبرى (الماكروز)</h2>
+                                <p class="text-xs text-slate-400">اختر نظاماً جاهزاً أو خصص النسب يدوياً</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preset Buttons -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+                        <button type="button" id="preset-balanced" onclick="applyMacroPreset('balanced', 30, 40, 30)" class="preset-btn py-2.5 px-2 rounded-xl border border-emerald-500 bg-emerald-500/15 text-emerald-300 text-xs font-bold transition text-center">
+                            متوازن
+                            <span class="block text-[10px] font-normal opacity-80">30P / 40C / 30F</span>
+                        </button>
+                        <button type="button" id="preset-highprotein" onclick="applyMacroPreset('highprotein', 40, 35, 25)" class="preset-btn py-2.5 px-2 rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 hover:border-slate-700 text-xs font-bold transition text-center">
+                            عالي البروتين
+                            <span class="block text-[10px] font-normal opacity-75">40P / 35C / 25F</span>
+                        </button>
+                        <button type="button" id="preset-lowcarb" onclick="applyMacroPreset('lowcarb', 40, 20, 40)" class="preset-btn py-2.5 px-2 rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 hover:border-slate-700 text-xs font-bold transition text-center">
+                            قليل الكارب
+                            <span class="block text-[10px] font-normal opacity-75">40P / 20C / 40F</span>
+                        </button>
+                        <button type="button" id="preset-custom" onclick="enableCustomMacroHint()" class="preset-btn py-2.5 px-2 rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 hover:border-slate-700 text-xs font-bold transition text-center">
+                            تخصيص حر
+                            <span class="block text-[10px] font-normal opacity-75">تحكم يدوي</span>
+                        </button>
+                    </div>
+
+                    <!-- Macro Ratio Sliders (Auto-balancing to 100%) -->
+                    <div class="space-y-4">
+                        <!-- Protein Slider -->
+                        <div class="bg-slate-900/60 p-3 rounded-2xl border border-emerald-500/20">
+                            <div class="flex justify-between text-xs font-bold mb-1.5">
+                                <span class="text-emerald-400 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>
+                                    البروتين (4 سعرات/جم)
+                                </span>
+                                <span id="label-pct-protein" class="text-white bg-emerald-500/20 px-2 py-0.5 rounded-md">30%</span>
+                            </div>
+                            <input type="range" id="slider-pct-protein" min="15" max="60" value="30" oninput="handleMacroSliderChange('protein', this.value)" class="w-full">
+                        </div>
+
+                        <!-- Carbs Slider -->
+                        <div class="bg-slate-900/60 p-3 rounded-2xl border border-amber-500/20">
+                            <div class="flex justify-between text-xs font-bold mb-1.5">
+                                <span class="text-amber-400 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+                                    الكربوهيدرات (4 سعرات/جم)
+                                </span>
+                                <span id="label-pct-carbs" class="text-white bg-amber-500/20 px-2 py-0.5 rounded-md">40%</span>
+                            </div>
+                            <input type="range" id="slider-pct-carbs" min="5" max="70" value="40" oninput="handleMacroSliderChange('carbs', this.value)" class="w-full slider-amber">
+                        </div>
+
+                        <!-- Fats Slider -->
+                        <div class="bg-slate-900/60 p-3 rounded-2xl border border-rose-500/20">
+                            <div class="flex justify-between text-xs font-bold mb-1.5">
+                                <span class="text-rose-400 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block"></span>
+                                    الدهون الصحية (9 سعرات/جم)
+                                </span>
+                                <span id="label-pct-fats" class="text-white bg-rose-500/20 px-2 py-0.5 rounded-md">30%</span>
+                            </div>
+                            <input type="range" id="slider-pct-fats" min="15" max="65" value="30" oninput="handleMacroSliderChange('fats', this.value)" class="w-full slider-rose">
+                        </div>
+                    </div>
+
+                    <!-- Combined Multi-Segment Bar -->
+                    <div class="mt-4">
+                        <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                            <span>توازن النسب المئوية</span>
+                            <span id="total-pct-indicator" class="text-emerald-400 font-bold">المجموع: 100%</span>
+                        </div>
+                        <div class="h-3 w-full rounded-full bg-slate-800 overflow-hidden flex p-0.5 gap-0.5">
+                            <div id="bar-split-protein" class="h-full bg-emerald-500 rounded-r-full transition-all duration-300" style="width: 30%"></div>
+                            <div id="bar-split-carbs" class="h-full bg-amber-500 transition-all duration-300" style="width: 40%"></div>
+                            <div id="bar-split-fats" class="h-full bg-rose-500 rounded-l-full transition-all duration-300" style="width: 30%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Left Column in RTL (7 cols): Daily Summary & Visuals -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- Top Energy Hero Card -->
+                <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden border border-slate-800">
+                    <div class="absolute -left-16 -top-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                        <!-- Target Calories Highlight -->
+                        <div class="text-center md:text-right space-y-2 flex-1">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                <span id="summary-goal-title">هدف المحافظة على الوزن</span>
+                            </div>
+                            <h2 class="text-slate-400 text-sm font-semibold">إجمالي السعرات اليومية المستهدفة</h2>
+                            <div class="flex items-baseline justify-center md:justify-start gap-2">
+                                <span id="display-target-calories" class="text-5xl sm:text-6xl font-black tracking-tight bg-gradient-to-l from-white via-emerald-200 to-emerald-400 bg-clip-text text-transparent">
+                                    2,715
+                                </span>
+                                <span class="text-lg font-bold text-slate-400">سعرة / يوم</span>
+                            </div>
+                            <p id="calorie-diff-note" class="text-xs text-slate-400">
+                                تعادل 100% من احتياجك اليومي الكلي للطاقة (TDEE)
+                            </p>
+                        </div>
+
+                        <!-- BMR & TDEE Stat Boxes -->
+                        <div class="grid grid-cols-2 gap-3 w-full md:w-auto">
+                            <div class="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 text-center min-w-[140px]">
+                                <div class="text-xs text-slate-400 mb-1 flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-heart-pulse text-rose-400"></i>
+                                    <span>الأيض الأساسي (BMR)</span>
+                                </div>
+                                <div id="display-bmr" class="text-2xl font-extrabold text-white">1,752</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">سعرة في الراحة التامة</div>
+                            </div>
+
+                            <div class="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 text-center min-w-[140px]">
+                                <div class="text-xs text-slate-400 mb-1 flex items-center justify-center gap-1">
+                                    <i class="fa-solid fa-bolt text-amber-400"></i>
+                                    <span>سعرات الثبات (TDEE)</span>
+                                </div>
+                                <div id="display-tdee" class="text-2xl font-extrabold text-amber-400">2,715</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">مع النشاط اليومي</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BMI & Hydration Quick Bar -->
+                    <div class="mt-6 pt-5 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div class="flex items-center justify-between sm:justify-start gap-2 bg-slate-900/50 px-3.5 py-2.5 rounded-xl border border-slate-800/60">
+                            <span class="text-slate-400"><i class="fa-solid fa-droplet text-sky-400 ml-1"></i> احتياج الماء المقترح:</span>
+                            <span id="display-water" class="font-bold text-sky-300">3.1 لتر / يوم</span>
+                        </div>
+                        <div class="flex items-center justify-between sm:justify-start gap-2 bg-slate-900/50 px-3.5 py-2.5 rounded-xl border border-slate-800/60">
+                            <span class="text-slate-400"><i class="fa-solid fa-DNA text-emerald-400 ml-1"></i> البروتين لكل كجم:</span>
+                            <span id="display-protein-per-kg" class="font-bold text-emerald-300">2.6 جم / كجم</span>
+                        </div>
+                        <div class="flex items-center justify-between sm:justify-start gap-2 bg-slate-900/50 px-3.5 py-2.5 rounded-xl border border-slate-800/60">
+                            <span class="text-slate-400"><i class="fa-solid fa-gauge-high text-purple-400 ml-1"></i> مؤشر الكتلة (BMI):</span>
+                            <span id="display-bmi" class="font-bold text-purple-300">25.2 (طبيعي)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3 Macro Circular Progress Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                    <!-- Protein Card -->
+                    <div class="glass-card glass-card-hover rounded-3xl p-5 bg-glow-emerald border-t-2 border-t-emerald-500/60 flex flex-col items-center text-center relative">
+                        <div class="w-full flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-emerald-400 bg-emerald-500/15 px-2.5 py-1 rounded-lg">البروتين</span>
+                            <span id="card-pct-protein" class="text-xs font-extrabold text-slate-300">30%</span>
+                        </div>
+
+                        <!-- Circular Progress SVG -->
+                        <div class="relative w-32 h-32 my-2 flex items-center justify-center">
+                            <svg class="w-full h-full" viewBox="0 0 120 120">
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="#1e293b" stroke-width="10"></circle>
+                                <circle id="ring-protein" class="progress-ring-circle" cx="60" cy="60" r="50" fill="none" stroke="#10b981" stroke-width="10" stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="219.9"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="display-protein-g" class="text-3xl font-black text-white">204</span>
+                                <span class="text-xs font-bold text-emerald-400">جرام</span>
+                            </div>
+                        </div>
+
+                        <div class="w-full mt-2 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs">
+                            <span class="text-slate-400">الطاقة الحرارية:</span>
+                            <span id="display-protein-kcal" class="font-bold text-emerald-300">815 سعرة</span>
+                        </div>
+                    </div>
+
+                    <!-- Carbohydrates Card -->
+                    <div class="glass-card glass-card-hover rounded-3xl p-5 bg-glow-amber border-t-2 border-t-amber-500/60 flex flex-col items-center text-center relative">
+                        <div class="w-full flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-amber-400 bg-amber-500/15 px-2.5 py-1 rounded-lg">الكربوهيدرات</span>
+                            <span id="card-pct-carbs" class="text-xs font-extrabold text-slate-300">40%</span>
+                        </div>
+
+                        <!-- Circular Progress SVG -->
+                        <div class="relative w-32 h-32 my-2 flex items-center justify-center">
+                            <svg class="w-full h-full" viewBox="0 0 120 120">
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="#1e293b" stroke-width="10"></circle>
+                                <circle id="ring-carbs" class="progress-ring-circle" cx="60" cy="60" r="50" fill="none" stroke="#f59e0b" stroke-width="10" stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="188.5"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="display-carbs-g" class="text-3xl font-black text-white">272</span>
+                                <span class="text-xs font-bold text-amber-400">جرام</span>
+                            </div>
+                        </div>
+
+                        <div class="w-full mt-2 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs">
+                            <span class="text-slate-400">الطاقة الحرارية:</span>
+                            <span id="display-carbs-kcal" class="font-bold text-amber-300">1,086 سعرة</span>
+                        </div>
+                    </div>
+
+                    <!-- Fats Card -->
+                    <div class="glass-card glass-card-hover rounded-3xl p-5 bg-glow-rose border-t-2 border-t-rose-500/60 flex flex-col items-center text-center relative">
+                        <div class="w-full flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-rose-400 bg-rose-500/15 px-2.5 py-1 rounded-lg">الدهون الصحية</span>
+                            <span id="card-pct-fats" class="text-xs font-extrabold text-slate-300">30%</span>
+                        </div>
+
+                        <!-- Circular Progress SVG -->
+                        <div class="relative w-32 h-32 my-2 flex items-center justify-center">
+                            <svg class="w-full h-full" viewBox="0 0 120 120">
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="#1e293b" stroke-width="10"></circle>
+                                <circle id="ring-fats" class="progress-ring-circle" cx="60" cy="60" r="50" fill="none" stroke="#f43f5e" stroke-width="10" stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="219.9"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="display-fats-g" class="text-3xl font-black text-white">91</span>
+                                <span class="text-xs font-bold text-rose-400">جرام</span>
+                            </div>
+                        </div>
+
+                        <div class="w-full mt-2 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs">
+                            <span class="text-slate-400">الطاقة الحرارية:</span>
+                            <span id="display-fats-kcal" class="font-bold text-rose-300">815 سعرة</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Scientific Insight Box -->
+                <div class="glass-card rounded-2xl p-4 border border-slate-800/80 flex items-start gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-400 flex items-center justify-center shrink-0 mt-0.5">
+                        <i class="fa-solid fa-lightbulb text-lg"></i>
+                    </div>
+                    <div class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        <span class="font-bold text-white block mb-0.5">توصية التغذية الرياضية الذكية:</span>
+                        <p id="nutrition-tip-text">
+                            لتحقيق أفضل النتائج، احرص على توزيع كمية البروتين على مدار اليوم لتحفيز البناء العضلي، مع التركيز على الكربوهيدرات المعقدة قبل وبعد التمرين لدعم الأداء والاستشفاء.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Meal Splitter (توزيع الوجبات اليومية) -->
+        <section id="meal-splitter-section" class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-slate-800">
+                <div class="flex items-start gap-3.5">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0 text-xl">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-extrabold text-white">توزيع الوجبات اليومية</h2>
+                        <p class="text-xs sm:text-sm text-slate-400 mt-0.5">اختر عدد وجباتك وطريقة توزيع الماكروز بين التوزيع المتساوي أو التركيز حول أوقات التمرين</p>
+                    </div>
+                </div>
+
+                <!-- Controls: Number of Meals + Split Mode -->
+                <div class="flex flex-wrap items-center gap-4">
+                    <!-- Number of Meals (2 to 6) -->
+                    <div class="bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 flex items-center gap-1">
+                        <span class="text-xs text-slate-400 px-2.5 font-semibold">عدد الوجبات:</span>
+                        <button type="button" onclick="setMealCount(2)" id="meal-cnt-2" class="meal-cnt-btn w-9 h-9 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">2</button>
+                        <button type="button" onclick="setMealCount(3)" id="meal-cnt-3" class="meal-cnt-btn w-9 h-9 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">3</button>
+                        <button type="button" onclick="setMealCount(4)" id="meal-cnt-4" class="meal-cnt-btn w-9 h-9 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 shadow-md transition">4</button>
+                        <button type="button" onclick="setMealCount(5)" id="meal-cnt-5" class="meal-cnt-btn w-9 h-9 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">5</button>
+                        <button type="button" onclick="setMealCount(6)" id="meal-cnt-6" class="meal-cnt-btn w-9 h-9 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition">6</button>
+                    </div>
+
+                    <!-- Split Strategy Toggle: Even vs Workout Focus -->
+                    <div class="bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 flex items-center gap-1">
+                        <button type="button" id="split-mode-even" onclick="setSplitMode('even')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-equals"></i>
+                            <span>توزيع متساوي</span>
+                        </button>
+                        <button type="button" id="split-mode-workout" onclick="setSplitMode('workout')" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt-lightning"></i>
+                            <span>تركيز حول التمرين</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Explanation Banner for Current Split Mode -->
+            <div id="split-mode-banner" class="mt-4 bg-slate-900/60 border border-slate-800/80 rounded-2xl px-4 py-3 flex items-center justify-between flex-wrap gap-2 text-xs text-slate-300">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-amber-400"></i>
+                    <span id="split-mode-desc">يتم تقسيم السعرات والبروتين والكربوهيدرات والدهون بالتساوي التام على جميع وجباتك اليومية لتسهيل التحضير المسبق.</span>
+                </div>
+                <span class="text-[11px] text-emerald-400 font-semibold">انقر على "اختبار في المركب" لأي وجبة لتطبيقها أدناه!</span>
+            </div>
+
+            <!-- Dynamic Meals Grid -->
+            <div id="meals-grid-container" class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </section>
+
+        <!-- SECTION 4: Interactive Meal Builder (مركب الوجبات السريع) -->
+        <section id="meal-builder-section" class="space-y-6">
+            <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl">
+                
+                <!-- Header -->
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+                    <div class="flex items-start gap-3.5">
+                        <div class="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center shrink-0 text-xl">
+                            <i class="fa-solid fa-utensils"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-extrabold text-white">مركب الوجبات السريع</h2>
+                            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">ركّب وجبتك من أشهر الأطعمة الصحية وتحقق فوراً من مطابقتها لهدف وجبتك أو احتياجك اليومي</p>
+                        </div>
+                    </div>
+
+                    <!-- Compare Target Mode Selector + Ready Meal Presets -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-2xl border border-slate-800">
+                            <span class="text-xs text-slate-400 font-semibold">مقارنة مع:</span>
+                            <select id="builder-target-select" onchange="updateMealBuilderTotals()" class="bg-transparent text-xs font-bold text-emerald-400 focus:outline-none cursor-pointer">
+                                <option value="single_meal" class="bg-slate-900 text-white">هدف الوجبة الواحدة</option>
+                                <option value="daily_total" class="bg-slate-900 text-white">إجمالي الاحتياج اليومي</option>
+                            </select>
+                        </div>
+
+                        <!-- Quick Ready Meals Dropdown/Buttons -->
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="loadReadyMealTemplate('post_workout')" class="text-xs px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-bold transition">
+                                <i class="fa-solid fa-drumstick-bite ml-1"></i>وجبة دجاج وأرز
+                            </button>
+                            <button onclick="loadReadyMealTemplate('oats_power')" class="text-xs px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold transition">
+                                <i class="fa-solid fa-bowl-food ml-1"></i>شوفان الطاقة
+                            </button>
+                            <button onclick="loadReadyMealTemplate('high_protein_breakfast')" class="text-xs px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 font-bold transition">
+                                <i class="fa-solid fa-egg ml-1"></i>فطور بيض وقريش
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Builder Grid: Ingredient Picker (Right 5 cols) + Active Meal Plate & Progress (Left 7 cols) -->
+                <div class="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                    <!-- Food Database Catalog (5 cols) -->
+                    <div class="lg:col-span-5 bg-slate-900/60 rounded-2xl p-4 border border-slate-800/90">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-basket-shopping text-emerald-400"></i>
+                                <span>قاعدة بيانات الأطعمة الأساسية</span>
+                            </h3>
+                            <span class="text-[11px] text-slate-400">القيم لكل 100 جم/مل</span>
+                        </div>
+
+                        <!-- Search / Filter Input -->
+                        <div class="relative mb-3">
+                            <input type="text" id="food-search-input" oninput="renderFoodDatabase()" placeholder="ابحث عن صنف غذائي (مثل: صدور دجاج، شوفان، بيض...)" class="w-full bg-slate-950/90 border border-slate-800 rounded-xl pr-9 pl-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                            <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        </div>
+
+                        <!-- Category Filter Pills -->
+                        <div class="flex gap-1.5 overflow-x-auto pb-2 mb-2 text-[11px]">
+                            <button onclick="setFoodCategory('all')" id="cat-all" class="food-cat-btn px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold shrink-0">الكل</button>
+                            <button onclick="setFoodCategory('protein')" id="cat-protein" class="food-cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-semibold shrink-0">مصادر بروتين</button>
+                            <button onclick="setFoodCategory('carbs')" id="cat-carbs" class="food-cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-semibold shrink-0">كربوهيدرات</button>
+                            <button onclick="setFoodCategory('fats')" id="cat-fats" class="food-cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-semibold shrink-0">دهون صحية وألبان</button>
+                        </div>
+
+                        <!-- Scrollable Food Items List -->
+                        <div id="food-database-list" class="space-y-2 max-h-[430px] overflow-y-auto pl-1">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Built Meal & Live Comparison Bars (7 cols) -->
+                    <div class="lg:col-span-7 space-y-5">
+
+                        <!-- Live Comparison Dashboard against Target -->
+                        <div class="bg-slate-900/90 rounded-2xl p-5 border border-slate-800">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                <div>
+                                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                        <i class="fa-solid fa-chart-simple text-amber-400"></i>
+                                        <span id="builder-comparison-title">تحليل الوجبة مقارنة بهدف الوجبة الواحدة</span>
+                                    </h3>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="clearMealBuilder()" class="text-xs text-rose-400 hover:text-rose-300 bg-rose-500/10 px-3 py-1.5 rounded-xl border border-rose-500/20 font-semibold transition flex items-center gap-1">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                        <span>إفراغ الوجبة</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 4 Progress Bars: Calories, Protein, Carbs, Fats -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                                <!-- Calories Progress -->
+                                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80">
+                                    <div class="flex justify-between items-baseline mb-1.5">
+                                        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                            <i class="fa-solid fa-fire text-sky-400"></i> السعرات الحرارية
+                                        </span>
+                                        <div class="text-xs">
+                                            <span id="meal-total-kcal" class="font-black text-base text-sky-400">0</span>
+                                            <span class="text-slate-500"> / </span>
+                                            <span id="meal-target-kcal" class="text-slate-400 font-semibold">679 سعرة</span>
+                                        </div>
+                                    </div>
+                                    <div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                        <div id="meal-bar-kcal" class="h-full bg-sky-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                    <div class="flex justify-between text-[11px] mt-1 text-slate-400">
+                                        <span id="meal-status-kcal">أضف مكونات للبدء</span>
+                                        <span id="meal-pct-kcal" class="font-bold">0%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Protein Progress -->
+                                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80">
+                                    <div class="flex justify-between items-baseline mb-1.5">
+                                        <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span> البروتين
+                                        </span>
+                                        <div class="text-xs">
+                                            <span id="meal-total-protein" class="font-black text-base text-emerald-400">0</span>
+                                            <span class="text-slate-500"> / </span>
+                                            <span id="meal-target-protein" class="text-slate-400 font-semibold">51 جم</span>
+                                        </div>
+                                    </div>
+                                    <div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                        <div id="meal-bar-protein" class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                    <div class="flex justify-between text-[11px] mt-1 text-slate-400">
+                                        <span id="meal-status-protein">متبقي 51 جم</span>
+                                        <span id="meal-pct-protein" class="font-bold">0%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Carbs Progress -->
+                                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80">
+                                    <div class="flex justify-between items-baseline mb-1.5">
+                                        <span class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-amber-400"></span> الكربوهيدرات
+                                        </span>
+                                        <div class="text-xs">
+                                            <span id="meal-total-carbs" class="font-black text-base text-amber-400">0</span>
+                                            <span class="text-slate-500"> / </span>
+                                            <span id="meal-target-carbs" class="text-slate-400 font-semibold">68 جم</span>
+                                        </div>
+                                    </div>
+                                    <div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                        <div id="meal-bar-carbs" class="h-full bg-amber-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                    <div class="flex justify-between text-[11px] mt-1 text-slate-400">
+                                        <span id="meal-status-carbs">متبقي 68 جم</span>
+                                        <span id="meal-pct-carbs" class="font-bold">0%</span>
+                                    </div>
+                                </div>
+
+                                <!-- Fats Progress -->
+                                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80">
+                                    <div class="flex justify-between items-baseline mb-1.5">
+                                        <span class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-rose-400"></span> الدهون الصحية
+                                        </span>
+                                        <div class="text-xs">
+                                            <span id="meal-total-fats" class="font-black text-base text-rose-400">0</span>
+                                            <span class="text-slate-500"> / </span>
+                                            <span id="meal-target-fats" class="text-slate-400 font-semibold">23 جم</span>
+                                        </div>
+                                    </div>
+                                    <div class="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                        <div id="meal-bar-fats" class="h-full bg-rose-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                    <div class="flex justify-between text-[11px] mt-1 text-slate-400">
+                                        <span id="meal-status-fats">متبقي 23 جم</span>
+                                        <span id="meal-pct-fats" class="font-bold">0%</span>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Selected Ingredients List (Your Plate) -->
+                        <div class="bg-slate-900/60 rounded-2xl p-5 border border-slate-800">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-plate-wheat text-emerald-400"></i>
+                                    <span>مكونات طبقك الحالي</span>
+                                    <span id="plate-items-count" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400">3 أصناف</span>
+                                </h3>
+                                <span class="text-xs text-slate-400">عدّل الوزن بالجرام مباشرة</span>
+                            </div>
+
+                            <div id="meal-plate-items" class="space-y-3">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-6 border-t border-slate-800/80 text-center sm:flex sm:items-center sm:justify-between text-xs text-slate-500">
+        <p>تم التطوير باستخدام معادلة Mifflin-St Jeor المعتمدة علمياً لحساب الطاقة والمغذيات الكبرى.</p>
+        <p class="mt-2 sm:mt-0">ماكرو برو — لوحة تحكم اللياقة والتغذية الذكية</p>
+    </footer>
+
+    <!-- Application JavaScript -->
+    <script>
+        // ==========================================
+        // 1. STATE & NUTRITIONAL DATABASE
+        // ==========================================
+        const state = {
+            gender: 'male',       // 'male' | 'female'
+            age: 26,              // years
+            weight: 78,           // kg
+            height: 176,          // cm
+            activity: 1.55,       // multiplier
+            goal: 'maintain',     // 'cut' (-20%) | 'maintain' (0%) | 'bulk' (+15%)
+            macroPreset: 'balanced',
+            pctProtein: 30,
+            pctCarbs: 40,
+            pctFats: 30,
+            // Calculated Daily Totals
+            bmr: 1752,
+            tdee: 2715,
+            targetCalories: 2715,
+            targetProteinG: 204,
+            targetCarbsG: 272,
+            targetFatsG: 91,
+            // Meal Splitter
+            mealCount: 4,
+            splitMode: 'even',    // 'even' | 'workout'
+            selectedMealCustomTarget: null, // Optional specific meal override for builder
+            // Meal Builder Filter & Plate
+            foodCategory: 'all',
+            plate: [
+                { id: 'chicken_breast', grams: 150 },
+                { id: 'white_rice', grams: 200 },
+                { id: 'olive_oil', grams: 10 }
+            ]
+        };
+
+        // Pre-loaded database of staple fitness ingredients (per 100g/ml)
+        const FOOD_DATABASE = [
+            {
+                id: 'chicken_breast',
+                name: 'صدور دجاج (مشوية / صافية)',
+                category: 'protein',
+                icon: '🍗',
+                unitLabel: 'جم',
+                defaultGrams: 150,
+                stepGrams: 25,
+                note: '150 جم = صدر متوسط',
+                kcal: 165,
+                protein: 31.0,
+                carbs: 0.0,
+                fats: 3.6
+            },
+            {
+                id: 'oats',
+                name: 'شوفان كامل الحبة (خام)',
+                category: 'carbs',
+                icon: '🌾',
+                unitLabel: 'جم',
+                defaultGrams: 60,
+                stepGrams: 10,
+                note: '40 جم = نصف كوب تقريباً',
+                kcal: 389,
+                protein: 16.9,
+                carbs: 66.3,
+                fats: 6.9
+            },
+            {
+                id: 'peanut_butter',
+                name: 'زبدة فول سوداني طبيعية',
+                category: 'fats',
+                icon: '🥜',
+                unitLabel: 'جم',
+                defaultGrams: 20,
+                stepGrams: 5,
+                note: '16 جم = ملعقة طعام كبيرة',
+                kcal: 588,
+                protein: 25.0,
+                carbs: 20.0,
+                fats: 50.0
+            },
+            {
+                id: 'banana',
+                name: 'موز طازج (مقشر)',
+                category: 'carbs',
+                icon: '🍌',
+                unitLabel: 'جم',
+                defaultGrams: 120,
+                stepGrams: 30,
+                note: '120 جم = موزة متوسطة',
+                kcal: 89,
+                protein: 1.1,
+                carbs: 22.8,
+                fats: 0.3
+            },
+            {
+                id: 'whole_milk',
+                name: 'حليب كامل الدسم',
+                category: 'fats',
+                icon: '🥛',
+                unitLabel: 'مل',
+                defaultGrams: 250,
+                stepGrams: 50,
+                note: '250 مل = كوب واحد',
+                kcal: 61,
+                protein: 3.2,
+                carbs: 4.8,
+                fats: 3.3
+            },
+            {
+                id: 'eggs',
+                name: 'بيض كامل مسلوق / مطبوخ',
+                category: 'protein',
+                icon: '🥚',
+                unitLabel: 'جم',
+                defaultGrams: 100,
+                stepGrams: 50,
+                note: '50 جم = بيضة كبيرة واحدة',
+                kcal: 155,
+                protein: 12.6,
+                carbs: 1.1,
+                fats: 10.6
+            },
+            {
+                id: 'white_rice',
+                name: 'أرز أبيض مطبوخ',
+                category: 'carbs',
+                icon: '🍚',
+                unitLabel: 'جم',
+                defaultGrams: 180,
+                stepGrams: 30,
+                note: '150 جم = كوب مطبوخ',
+                kcal: 130,
+                protein: 2.7,
+                carbs: 28.2,
+                fats: 0.3
+            },
+            {
+                id: 'potatoes',
+                name: 'بطاطا مسلوقة / مشوية بالفرن',
+                category: 'carbs',
+                icon: '🥔',
+                unitLabel: 'جم',
+                defaultGrams: 200,
+                stepGrams: 50,
+                note: '200 جم = حبة متوسطة إلى كبيرة',
+                kcal: 87,
+                protein: 1.9,
+                carbs: 20.1,
+                fats: 0.1
+            },
+            {
+                id: 'olive_oil',
+                name: 'زيت زيتون بكر ممتاز',
+                category: 'fats',
+                icon: '🫒',
+                unitLabel: 'مل',
+                defaultGrams: 10,
+                stepGrams: 5,
+                note: '10 مل = ملعقة طعام تقريباً',
+                kcal: 884,
+                protein: 0.0,
+                carbs: 0.0,
+                fats: 100.0
+            },
+            {
+                id: 'tuna',
+                name: 'تونة مصفاة (محفوظة بالماء)',
+                category: 'protein',
+                icon: '🐟',
+                unitLabel: 'جم',
+                defaultGrams: 120,
+                stepGrams: 30,
+                note: '120 جم = علبة تونة مصفاة',
+                kcal: 116,
+                protein: 25.5,
+                carbs: 0.0,
+                fats: 0.8
+            },
+            {
+                id: 'cottage_cheese',
+                name: 'جبن قريش خفيف الدسم',
+                category: 'protein',
+                icon: '🧀',
+                unitLabel: 'جم',
+                defaultGrams: 150,
+                stepGrams: 25,
+                note: 'غني ببروتين الكازين بطيء الامتصاص',
+                kcal: 98,
+                protein: 11.1,
+                carbs: 3.4,
+                fats: 4.3
+            }
+        ];
+
+        // ==========================================
+        // 2. USER METRICS & TDEE CALCULATIONS
+        // ==========================================
+        function setGender(gender) {
+            state.gender = gender;
+            const maleBtn = document.getElementById('btn-gender-male');
+            const femaleBtn = document.getElementById('btn-gender-female');
+
+            if (gender === 'male') {
+                maleBtn.className = "py-3 px-4 rounded-2xl border-2 border-emerald-500 bg-emerald-500/15 text-white font-bold flex items-center justify-center gap-2 transition";
+                femaleBtn.className = "py-3 px-4 rounded-2xl border-2 border-slate-800 bg-slate-900/60 text-slate-400 hover:text-white font-bold flex items-center justify-center gap-2 transition";
+            } else {
+                femaleBtn.className = "py-3 px-4 rounded-2xl border-2 border-rose-500 bg-rose-500/15 text-white font-bold flex items-center justify-center gap-2 transition";
+                maleBtn.className = "py-3 px-4 rounded-2xl border-2 border-slate-800 bg-slate-900/60 text-slate-400 hover:text-white font-bold flex items-center justify-center gap-2 transition";
+            }
+            calculateAll();
+        }
+
+        function syncMetricInput(field, rawValue) {
+            let val = parseFloat(rawValue);
+            if (isNaN(val)) return;
+
+            if (field === 'age') {
+                val = Math.max(10, Math.min(100, val));
+                state.age = val;
+                document.getElementById('input-age').value = val;
+                document.getElementById('num-age').value = val;
+            } else if (field === 'weight') {
+                val = Math.max(30, Math.min(250, val));
+                state.weight = val;
+                document.getElementById('input-weight').value = val;
+                document.getElementById('num-weight').value = val;
+            } else if (field === 'height') {
+                val = Math.max(120, Math.min(240, val));
+                state.height = val;
+                document.getElementById('input-height').value = val;
+                document.getElementById('num-height').value = val;
+            }
+            calculateAll();
+        }
+
+        function setGoal(goal) {
+            state.goal = goal;
+            const goals = ['cut', 'maintain', 'bulk'];
+            goals.forEach(g => {
+                const btn = document.getElementById(`btn-goal-${g}`);
+                if (g === goal) {
+                    const borderColor = g === 'cut' ? 'border-rose-500 bg-rose-500/15' : (g === 'bulk' ? 'border-amber-500 bg-amber-500/15' : 'border-emerald-500 bg-emerald-500/15');
+                    btn.className = `goal-btn p-3 rounded-2xl border-2 ${borderColor} text-center transition flex flex-col items-center gap-1`;
+                } else {
+                    btn.className = "goal-btn p-3 rounded-2xl border-2 border-slate-800 bg-slate-900/60 hover:border-slate-700 text-center transition flex flex-col items-center gap-1";
+                }
+            });
+
+            const badge = document.getElementById('goal-modifier-badge');
+            if (goal === 'cut') {
+                badge.textContent = 'تنشيف وخسارة دهون (-20%)';
+                badge.className = 'text-xs font-bold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400';
+            } else if (goal === 'maintain') {
+                badge.textContent = 'سعرات الثبات (0%)';
+                badge.className = 'text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400';
+            } else {
+                badge.textContent = 'تضخيم وبناء عضل (+15%)';
+                badge.className = 'text-xs font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400';
+            }
+
+            state.selectedMealCustomTarget = null;
+            calculateAll();
+        }
+
+        function applyMacroPreset(presetId, p, c, f) {
+            state.macroPreset = presetId;
+            state.pctProtein = p;
+            state.pctCarbs = c;
+            state.pctFats = f;
+
+            updatePresetButtonsUI(presetId);
+            syncMacroSlidersUI();
+            calculateAll();
+        }
+
+        function enableCustomMacroHint() {
+            state.macroPreset = 'custom';
+            updatePresetButtonsUI('custom');
+            showToast('حرك أشرطة البروتين أو الكربوهيدرات أو الدهون لتخصيص النسب بحرية');
+        }
+
+        function updatePresetButtonsUI(activePreset) {
+            const presets = ['balanced', 'highprotein', 'lowcarb', 'custom'];
+            presets.forEach(p => {
+                const btn = document.getElementById(`preset-${p}`);
+                if (p === activePreset) {
+                    btn.className = "preset-btn py-2.5 px-2 rounded-xl border border-emerald-500 bg-emerald-500/15 text-emerald-300 text-xs font-bold transition text-center";
+                } else {
+                    btn.className = "preset-btn py-2.5 px-2 rounded-xl border border-slate-800 bg-slate-900/70 text-slate-300 hover:border-slate-700 text-xs font-bold transition text-center";
+                }
+            });
+        }
+
+        function handleMacroSliderChange(changedMacro, newValRaw) {
+            let newVal = parseInt(newValRaw, 10);
+            state.macroPreset = 'custom';
+            updatePresetButtonsUI('custom');
+
+            // Keep total strictly equal to 100% by adjusting the other two macros proportionally
+            let p = state.pctProtein;
+            let c = state.pctCarbs;
+            let f = state.pctFats;
+
+            if (changedMacro === 'protein') {
+                p = Math.min(65, Math.max(10, newVal));
+                let remainder = 100 - p;
+                let otherSum = c + f;
+                if (otherSum > 0) {
+                    c = Math.round((c / otherSum) * remainder);
+                    f = remainder - c;
+                } else {
+                    c = Math.round(remainder / 2);
+                    f = remainder - c;
+                }
+            } else if (changedMacro === 'carbs') {
+                c = Math.min(75, Math.max(5, newVal));
+                let remainder = 100 - c;
+                let otherSum = p + f;
+                if (otherSum > 0) {
+                    p = Math.round((p / otherSum) * remainder);
+                    f = remainder - p;
+                } else {
+                    p = Math.round(remainder / 2);
+                    f = remainder - p;
+                }
+            } else if (changedMacro === 'fats') {
+                f = Math.min(70, Math.max(10, newVal));
+                let remainder = 100 - f;
+                let otherSum = p + c;
+                if (otherSum > 0) {
+                    c = Math.round((c / otherSum) * remainder);
+                    p = remainder - c;
+                } else {
+                    c = Math.round(remainder / 2);
+                    p = remainder - c;
+                }
+            }
+
+            state.pctProtein = p;
+            state.pctCarbs = c;
+            state.pctFats = f;
+
+            syncMacroSlidersUI();
+            calculateAll();
+        }
+
+        function syncMacroSlidersUI() {
+            document.getElementById('slider-pct-protein').value = state.pctProtein;
+            document.getElementById('slider-pct-carbs').value = state.pctCarbs;
+            document.getElementById('slider-pct-fats').value = state.pctFats;
+
+            document.getElementById('label-pct-protein').textContent = `${state.pctProtein}%`;
+            document.getElementById('label-pct-carbs').textContent = `${state.pctCarbs}%`;
+            document.getElementById('label-pct-fats').textContent = `${state.pctFats}%`;
+
+            document.getElementById('bar-split-protein').style.width = `${state.pctProtein}%`;
+            document.getElementById('bar-split-carbs').style.width = `${state.pctCarbs}%`;
+            document.getElementById('bar-split-fats').style.width = `${state.pctFats}%`;
+        }
+
+        // Core Mifflin-St Jeor & Macro Calculation
+        function calculateAll() {
+            state.activity = parseFloat(document.getElementById('select-activity').value);
+
+            // Mifflin-St Jeor Equation:
+            // Men: (10 × weight in kg) + (6.25 × height in cm) - (5 × age in years) + 5
+            // Women: (10 × weight in kg) + (6.25 × height in cm) - (5 × age in years) - 161
+            const genderOffset = state.gender === 'male' ? 5 : -161;
+            const rawBmr = (10 * state.weight) + (6.25 * state.height) - (5 * state.age) + genderOffset;
+            const rawTdee = rawBmr * state.activity;
+
+            let goalFactor = 1.0;
+            if (state.goal === 'cut') goalFactor = 0.80;      // -20%
+            else if (state.goal === 'bulk') goalFactor = 1.15; // +15%
+
+            const targetKcal = Math.round(rawTdee * goalFactor);
+
+            state.bmr = Math.round(rawBmr);
+            state.tdee = Math.round(rawTdee);
+            state.targetCalories = targetKcal;
+
+            // Calculate Macros in calories & grams
+            const proteinKcal = Math.round(targetKcal * (state.pctProtein / 100));
+            const carbsKcal = Math.round(targetKcal * (state.pctCarbs / 100));
+            const fatsKcal = Math.round(targetKcal * (state.pctFats / 100));
+
+            state.targetProteinG = Math.round(proteinKcal / 4);
+            state.targetCarbsG = Math.round(carbsKcal / 4);
+            state.targetFatsG = Math.round(fatsKcal / 9);
+
+            // Update Daily Summary Numbers
+            document.getElementById('display-bmr').textContent = state.bmr.toLocaleString('en-US');
+            document.getElementById('display-tdee').textContent = state.tdee.toLocaleString('en-US');
+            document.getElementById('display-target-calories').textContent = state.targetCalories.toLocaleString('en-US');
+
+            // Update Goal Note
+            const diff = state.targetCalories - state.tdee;
+            const goalTitleEl = document.getElementById('summary-goal-title');
+            const diffNoteEl = document.getElementById('calorie-diff-note');
+            if (state.goal === 'cut') {
+                goalTitleEl.textContent = 'خطة التنشيف وخسارة الدهون';
+                diffNoteEl.textContent = `عجز حراري بمقدار ${Math.abs(diff)} سعرة يومياً عن سعرات الثبات لحرق الدهون بأمان`;
+            } else if (state.goal === 'bulk') {
+                goalTitleEl.textContent = 'خطة التضخيم الصافي وبناء العضل';
+                diffNoteEl.textContent = `فائض حراري بمقدار +${diff} سعرة يومياً فوق سعرات الثبات لدعم الاستشفاء والبناء العضلي`;
+            } else {
+                goalTitleEl.textContent = 'خطة المحافظة على الوزن والأداء';
+                diffNoteEl.textContent = 'تعادل 100% من احتياجك اليومي الكلي للطاقة (TDEE)';
+            }
+
+            // Secondary Indicators (Water, Protein/kg, BMI)
+            const waterLiters = ((state.weight * 0.038) + (state.activity > 1.5 ? 0.5 : 0)).toFixed(1);
+            const proteinPerKg = (state.targetProteinG / state.weight).toFixed(1);
+            const heightMeters = state.height / 100;
+            const bmi = (state.weight / (heightMeters * heightMeters)).toFixed(1);
+            let bmiLabel = 'طبيعي';
+            if (bmi < 18.5) bmiLabel = 'نحافة';
+            else if (bmi >= 25 && bmi < 30) bmiLabel = 'وزن زائد/عضلي';
+            else if (bmi >= 30) bmiLabel = 'سمنة';
+
+            document.getElementById('display-water').textContent = `${waterLiters} لتر / يوم`;
+            document.getElementById('display-protein-per-kg').textContent = `${proteinPerKg} جم / كجم`;
+            document.getElementById('display-bmi').textContent = `${bmi} (${bmiLabel})`;
+
+            // Update Macro Cards & Rings
+            document.getElementById('card-pct-protein').textContent = `${state.pctProtein}%`;
+            document.getElementById('card-pct-carbs').textContent = `${state.pctCarbs}%`;
+            document.getElementById('card-pct-fats').textContent = `${state.pctFats}%`;
+
+            document.getElementById('display-protein-g').textContent = state.targetProteinG;
+            document.getElementById('display-carbs-g').textContent = state.targetCarbsG;
+            document.getElementById('display-fats-g').textContent = state.targetFatsG;
+
+            document.getElementById('display-protein-kcal').textContent = `${proteinKcal.toLocaleString('en-US')} سعرة`;
+            document.getElementById('display-carbs-kcal').textContent = `${carbsKcal.toLocaleString('en-US')} سعرة`;
+            document.getElementById('display-fats-kcal').textContent = `${fatsKcal.toLocaleString('en-US')} سعرة`;
+
+            // SVG Ring circumference for r=50 is 2 * PI * 50 = 314.16
+            const circumference = 314.16;
+            document.getElementById('ring-protein').style.strokeDashoffset = circumference - (circumference * state.pctProtein / 100);
+            document.getElementById('ring-carbs').style.strokeDashoffset = circumference - (circumference * state.pctCarbs / 100);
+            document.getElementById('ring-fats').style.strokeDashoffset = circumference - (circumference * state.pctFats / 100);
+
+            // Dynamic Smart Tip
+            updateSmartNutritionTip(proteinPerKg);
+
+            // Re-render Meal Splitter & Meal Builder
+            renderMealSplitter();
+            updateMealBuilderTotals();
+        }
+
+        function updateSmartNutritionTip(proteinPerKg) {
+            const tipEl = document.getElementById('nutrition-tip-text');
+            if (state.goal === 'cut') {
+                tipEl.textContent = `في مرحلة التنشيف، تحصل حالياً على ${proteinPerKg} جم بروتين لكل كجم من وزنك. الحفاظ على نسبة بروتين عالية مع تمارين المقاومة يحمي كتلتك العضلية ويزيد من الشعور بالشبع.`;
+            } else if (state.goal === 'bulk') {
+                tipEl.textContent = `في مرحلة التضخيم، يوفر لك هدفك (${state.targetCarbsG} جم كربوهيدرات) طاقة عالية لرفع أوزان أعلى في النادي. ركز على تناول 55% من الكربوهيدرات في وجبتي قبل وبعد التمرين.`;
+            } else {
+                tipEl.textContent = `توزيعك الحالي يمنحك توازناً مثالياً بين الأداء الرياضي والصحة العامة (${proteinPerKg} جم بروتين/كجم). جرب تفعيل خيار "تركيز حول التمرين" بالأسفل لتوجيه الطاقة نحو وقت تدريبك.`;
+            }
+        }
+
+        function resetMetrics() {
+            state.gender = 'male';
+            state.age = 26;
+            state.weight = 78;
+            state.height = 176;
+            document.getElementById('select-activity').value = '1.55';
+            setGender('male');
+            syncMetricInput('age', 26);
+            syncMetricInput('weight', 78);
+            syncMetricInput('height', 176);
+            setGoal('maintain');
+            applyMacroPreset('balanced', 30, 40, 30);
+            showToast('تمت استعادة القيم الافتراضية للحاسبة');
+        }
+
+        // ==========================================
+        // 3. MEAL SPLITTER (توزيع الوجبات اليومية)
+        // ==========================================
+        function setMealCount(count) {
+            state.mealCount = count;
+            state.selectedMealCustomTarget = null;
+            for (let i = 2; i <= 6; i++) {
+                const btn = document.getElementById(`meal-cnt-${i}`);
+                if (i === count) {
+                    btn.className = "meal-cnt-btn w-9 h-9 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 shadow-md transition";
+                } else {
+                    btn.className = "meal-cnt-btn w-9 h-9 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition";
+                }
+            }
+            renderMealSplitter();
+            updateMealBuilderTotals();
+        }
+
+        function setSplitMode(mode) {
+            state.splitMode = mode;
+            state.selectedMealCustomTarget = null;
+            const evenBtn = document.getElementById('split-mode-even');
+            const workoutBtn = document.getElementById('split-mode-workout');
+            const descEl = document.getElementById('split-mode-desc');
+
+            if (mode === 'even') {
+                evenBtn.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition flex items-center gap-1.5";
+                workoutBtn.className = "px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center gap-1.5";
+                descEl.textContent = "يتم تقسيم السعرات والبروتين والكربوهيدرات والدهون بالتساوي التام على جميع وجباتك اليومية لتسهيل التحضير المسبق.";
+            } else {
+                workoutBtn.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 transition flex items-center gap-1.5";
+                evenBtn.className = "px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center gap-1.5";
+                descEl.textContent = "يتم تخصيص حصة أكبر من الكربوهيدرات والبروتين لوجبتي (قبل التمرين) و(بعد التمرين) مع تقليل الدهون فيهما لتسريع الهضم والامتصاص.";
+            }
+            renderMealSplitter();
+            updateMealBuilderTotals();
+        }
+
+        function generateMealSplits() {
+            const n = state.mealCount;
+            const meals = [];
+
+            const mealNamesByCount = {
+                2: ['الوجبة الأولى (فطور متأخر / قبل التمرين)', 'الوجبة الثانية (عشاء / بعد التمرين)'],
+                3: ['وجبة الفطور', 'وجبة الغداء (قبل التمرين)', 'وجبة العشاء (بعد التمرين)'],
+                4: ['وجبة الفطور', 'وجبة قبل التمرين', 'وجبة بعد التمرين', 'وجبة العشاء'],
+                5: ['وجبة الفطور', 'سناك صباحي', 'وجبة قبل التمرين', 'وجبة بعد التمرين', 'وجبة العشاء'],
+                6: ['وجبة الفطور', 'سناك 1', 'وجبة قبل التمرين', 'وجبة بعد التمرين', 'سناك 2', 'وجبة العشاء']
+            };
+
+            const names = mealNamesByCount[n] || [];
+
+            if (state.splitMode === 'even') {
+                const w = 1 / n;
+                for (let i = 0; i < n; i++) {
+                    meals.push({
+                        index: i + 1,
+                        title: names[i] || `الوجبة ${i + 1}`,
+                        badge: 'متوازنة',
+                        isWorkoutMeal: false,
+                        protein: Math.round(state.targetProteinG * w),
+                        carbs: Math.round(state.targetCarbsG * w),
+                        fats: Math.round(state.targetFatsG * w),
+                        kcal: Math.round(state.targetCalories * w)
+                    });
+                }
+            } else {
+                // Workout Focus Distribution:
+                // Allocate higher carbs & protein around pre-workout & post-workout meals, and lower fat there
+                let pWeights = new Array(n).fill(1 / n);
+                let cWeights = new Array(n).fill(1 / n);
+                let fWeights = new Array(n).fill(1 / n);
+                let badges = new Array(n).fill('وجبة اعتيادية');
+                let workoutFlags = new Array(n).fill(false);
+
+                if (n === 2) {
+                    pWeights = [0.45, 0.55];
+                    cWeights = [0.45, 0.55];
+                    fWeights = [0.55, 0.45];
+                    badges = ['طاقة قبل التمرين ⚡', 'استشفاء بعد التمرين 💪'];
+                    workoutFlags = [true, true];
+                } else if (n === 3) {
+                    pWeights = [0.28, 0.34, 0.38];
+                    cWeights = [0.20, 0.38, 0.42];
+                    fWeights = [0.45, 0.30, 0.25];
+                    badges = ['طاقة صباحية', 'قبل التمرين ⚡', 'بعد التمرين 💪'];
+                    workoutFlags = [false, true, true];
+                } else if (n === 4) {
+                    pWeights = [0.22, 0.28, 0.30, 0.20];
+                    cWeights = [0.15, 0.35, 0.38, 0.12];
+                    fWeights = [0.35, 0.18, 0.12, 0.35];
+                    badges = ['فطور متوازن', 'قبل التمرين ⚡', 'بعد التمرين 💪', 'تغذية مسائية'];
+                    workoutFlags = [false, true, true, false];
+                } else if (n === 5) {
+                    pWeights = [0.20, 0.14, 0.24, 0.26, 0.16];
+                    cWeights = [0.15, 0.10, 0.32, 0.33, 0.10];
+                    fWeights = [0.28, 0.22, 0.14, 0.10, 0.26];
+                    badges = ['فطور', 'سناك خفيف', 'قبل التمرين ⚡', 'بعد التمرين 💪', 'عشاء'];
+                    workoutFlags = [false, false, true, true, false];
+                } else if (n === 6) {
+                    pWeights = [0.17, 0.12, 0.21, 0.23, 0.12, 0.15];
+                    cWeights = [0.14, 0.08, 0.30, 0.32, 0.08, 0.08];
+                    fWeights = [0.22, 0.20, 0.12, 0.08, 0.18, 0.20];
+                    badges = ['فطور', 'سناك 1', 'قبل التمرين ⚡', 'بعد التمرين 💪', 'سناك 2', 'عشاء'];
+                    workoutFlags = [false, false, true, true, false, false];
+                }
+
+                for (let i = 0; i < n; i++) {
+                    const pG = Math.round(state.targetProteinG * pWeights[i]);
+                    const cG = Math.round(state.targetCarbsG * cWeights[i]);
+                    const fG = Math.round(state.targetFatsG * fWeights[i]);
+                    const mealKcal = (pG * 4) + (cG * 4) + (fG * 9);
+
+                    meals.push({
+                        index: i + 1,
+                        title: names[i] || `الوجبة ${i + 1}`,
+                        badge: badges[i],
+                        isWorkoutMeal: workoutFlags[i],
+                        protein: pG,
+                        carbs: cG,
+                        fats: fG,
+                        kcal: mealKcal
+                    });
+                }
+            }
+            return meals;
+        }
+
+        function renderMealSplitter() {
+            const container = document.getElementById('meals-grid-container');
+            const meals = generateMealSplits();
+
+            // Adjust responsive grid cols depending on meal count
+            let gridClass = "mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4";
+            if (state.mealCount === 2) gridClass = "mt-6 grid grid-cols-1 md:grid-cols-2 gap-4";
+            else if (state.mealCount === 3 || state.mealCount === 6) gridClass = "mt-6 grid grid-cols-1 md:grid-cols-3 gap-4";
+            else if (state.mealCount === 5) gridClass = "mt-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3.5";
+            container.className = gridClass;
+
+            container.innerHTML = meals.map((m, idx) => {
+                const highlightBorder = m.isWorkoutMeal ? 'border-amber-500/40 bg-amber-500/5' : 'border-slate-800/90 bg-slate-900/60';
+                const badgeClass = m.isWorkoutMeal ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-300';
+
+                return `
+                    <div class="rounded-2xl p-4 border ${highlightBorder} flex flex-col justify-between transition hover:border-emerald-500/40">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <span class="text-xs font-extrabold text-white">${m.title}</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-lg ${badgeClass}">${m.badge}</span>
+                            </div>
+
+                            <div class="my-3 py-2.5 px-3 rounded-xl bg-slate-950/70 border border-slate-800/70 flex items-baseline justify-between">
+                                <span class="text-xs text-slate-400">سعرات الوجبة:</span>
+                                <div>
+                                    <span class="text-xl font-black text-white">${m.kcal}</span>
+                                    <span class="text-[11px] text-slate-400 font-semibold">سعرة</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-2 text-center my-3">
+                                <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2">
+                                    <div class="text-[10px] text-emerald-400 font-semibold">بروتين</div>
+                                    <div class="text-sm font-extrabold text-white mt-0.5">${m.protein}<span class="text-[10px] font-normal text-slate-400"> جم</span></div>
+                                </div>
+                                <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2">
+                                    <div class="text-[10px] text-amber-400 font-semibold">كارب</div>
+                                    <div class="text-sm font-extrabold text-white mt-0.5">${m.carbs}<span class="text-[10px] font-normal text-slate-400"> جم</span></div>
+                                </div>
+                                <div class="bg-rose-500/10 border border-rose-500/20 rounded-xl p-2">
+                                    <div class="text-[10px] text-rose-400 font-semibold">دهون</div>
+                                    <div class="text-sm font-extrabold text-white mt-0.5">${m.fats}<span class="text-[10px] font-normal text-slate-400"> جم</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="selectMealForBuilder(${idx})" class="mt-2 w-full py-2 rounded-xl bg-slate-800/90 hover:bg-emerald-500 hover:text-slate-950 text-slate-300 text-xs font-bold transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>اختبار في المركب</span>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectMealForBuilder(mealIdx) {
+            const meals = generateMealSplits();
+            const chosen = meals[mealIdx];
+            if (!chosen) return;
+
+            state.selectedMealCustomTarget = chosen;
+            document.getElementById('builder-target-select').value = 'single_meal';
+            updateMealBuilderTotals();
+
+            document.getElementById('meal-builder-section').scrollIntoView({ behavior: 'smooth' });
+            showToast(`تم تحديد هدف "${chosen.title}" (${chosen.kcal} سعرة) للمقارنة في مركب الوجبات`);
+        }
+
+        // ==========================================
+        // 4. INTERACTIVE MEAL BUILDER (مركب الوجبات السريع)
+        // ==========================================
+        function setFoodCategory(cat) {
+            state.foodCategory = cat;
+            const cats = ['all', 'protein', 'carbs', 'fats'];
+            cats.forEach(c => {
+                const btn = document.getElementById(`cat-${c}`);
+                if (c === cat) {
+                    btn.className = "food-cat-btn px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold shrink-0";
+                } else {
+                    btn.className = "food-cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-semibold shrink-0";
+                }
+            });
+            renderFoodDatabase();
+        }
+
+        function renderFoodDatabase() {
+            const query = (document.getElementById('food-search-input').value || '').trim().toLowerCase();
+            const listEl = document.getElementById('food-database-list');
+
+            const filtered = FOOD_DATABASE.filter(item => {
+                const matchesCat = state.foodCategory === 'all' || item.category === state.foodCategory;
+                const matchesSearch = !query || item.name.toLowerCase().includes(query);
+                return matchesCat && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">لا توجد نتائج مطابقة للبحث</div>`;
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(food => {
+                const inPlate = state.plate.find(p => p.id === food.id);
+                const badgeAdded = inPlate
+                    ? `<span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-bold">${inPlate.grams} ${food.unitLabel}</span>`
+                    : '';
+
+                return `
+                    <div class="bg-slate-950/80 hover:bg-slate-950 border border-slate-800/80 rounded-xl p-3 flex items-center justify-between gap-2 transition">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-2xl select-none">${food.icon}</span>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="text-xs font-bold text-white">${food.name}</h4>
+                                    ${badgeAdded}
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
+                                    <span class="text-sky-400 font-semibold">${food.kcal} سعرة</span>
+                                    <span>•</span>
+                                    <span class="text-emerald-400">${food.protein}P</span>
+                                    <span class="text-amber-400">${food.carbs}C</span>
+                                    <span class="text-rose-400">${food.fats}F</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="addIngredientToPlate('${food.id}')" class="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-slate-950 font-bold text-xs border border-emerald-500/30 transition flex items-center gap-1 shrink-0">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>إضافة</span>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addIngredientToPlate(foodId) {
+            const food = FOOD_DATABASE.find(f => f.id === foodId);
+            if (!food) return;
+
+            const existing = state.plate.find(item => item.id === foodId);
+            if (existing) {
+                existing.grams += food.stepGrams;
+                showToast(`تمت زيادة كمية ${food.name} إلى ${existing.grams} ${food.unitLabel}`);
+            } else {
+                state.plate.push({ id: foodId, grams: food.defaultGrams });
+                showToast(`تمت إضافة ${food.name} (${food.defaultGrams} ${food.unitLabel}) إلى الوجبة`);
+            }
+
+            renderFoodDatabase();
+            renderMealPlate();
+            updateMealBuilderTotals();
+        }
+
+        function updateIngredientGrams(foodId, newGramsRaw) {
+            let grams = parseFloat(newGramsRaw);
+            if (isNaN(grams) || grams < 0) grams = 0;
+            if (grams > 1500) grams = 1500;
+
+            const item = state.plate.find(p => p.id === foodId);
+            if (item) {
+                item.grams = Math.round(grams);
+                renderFoodDatabase();
+                renderMealPlate();
+                updateMealBuilderTotals();
+            }
+        }
+
+        function adjustIngredientStep(foodId, delta) {
+            const item = state.plate.find(p => p.id === foodId);
+            if (!item) return;
+            const nextVal = Math.max(5, item.grams + delta);
+            updateIngredientGrams(foodId, nextVal);
+        }
+
+        function removeIngredientFromPlate(foodId) {
+            state.plate = state.plate.filter(p => p.id !== foodId);
+            renderFoodDatabase();
+            renderMealPlate();
+            updateMealBuilderTotals();
+        }
+
+        function clearMealBuilder() {
+            state.plate = [];
+            renderFoodDatabase();
+            renderMealPlate();
+            updateMealBuilderTotals();
+            showToast('تم إفراغ مكونات الوجبة');
+        }
+
+        function loadReadyMealTemplate(templateName) {
+            if (templateName === 'post_workout') {
+                state.plate = [
+                    { id: 'chicken_breast', grams: 160 },
+                    { id: 'white_rice', grams: 220 },
+                    { id: 'olive_oil', grams: 8 }
+                ];
+                showToast('تم تحميل وجبة بعد التمرين: صدور دجاج وأرز أبيض وزيت زيتون');
+            } else if (templateName === 'oats_power') {
+                state.plate = [
+                    { id: 'oats', grams: 70 },
+                    { id: 'whole_milk', grams: 250 },
+                    { id: 'banana', grams: 120 },
+                    { id: 'peanut_butter', grams: 20 }
+                ];
+                showToast('تم تحميل وجبة شوفان الطاقة بالحليب والموز وزبدة الفول السوداني');
+            } else if (templateName === 'high_protein_breakfast') {
+                state.plate = [
+                    { id: 'eggs', grams: 150 },
+                    { id: 'cottage_cheese', grams: 150 },
+                    { id: 'potatoes', grams: 180 },
+                    { id: 'olive_oil', grams: 10 }
+                ];
+                showToast('تم تحميل فطور البيض والجبن القريش والبطاطا');
+            }
+            renderFoodDatabase();
+            renderMealPlate();
+            updateMealBuilderTotals();
+        }
+
+        function renderMealPlate() {
+            const container = document.getElementById('meal-plate-items');
+            const countBadge = document.getElementById('plate-items-count');
+            countBadge.textContent = `${state.plate.length} أصناف`;
+
+            if (state.plate.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 bg-slate-950/50 rounded-2xl border border-dashed border-slate-800">
+                        <i class="fa-solid fa-bowl-rice text-3xl text-slate-600 mb-2"></i>
+                        <p class="text-sm font-bold text-slate-400">طبقك فارغ حالياً</p>
+                        <p class="text-xs text-slate-500 mt-1">اختر أطعمة من القائمة الجانبية أو اضغط على إحدى الوجبات الجاهزة بالأعلى</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = state.plate.map(item => {
+                const food = FOOD_DATABASE.find(f => f.id === item.id);
+                if (!food) return '';
+
+                const ratio = item.grams / 100;
+                const itemKcal = Math.round(food.kcal * ratio);
+                const itemP = (food.protein * ratio).toFixed(1);
+                const itemC = (food.carbs * ratio).toFixed(1);
+                const itemF = (food.fats * ratio).toFixed(1);
+
+                return `
+                    <div class="bg-slate-950/90 border border-slate-800/90 rounded-2xl p-3.5 transition">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div class="flex items-center gap-2.5">
+                                <span class="text-2xl">${food.icon}</span>
+                                <div>
+                                    <h4 class="text-xs sm:text-sm font-bold text-white">${food.name}</h4>
+                                    <span class="text-[10px] text-slate-500">${food.note}</span>
+                                </div>
+                            </div>
+
+                            <!-- Calculated Item Macros -->
+                            <div class="flex items-center gap-3">
+                                <div class="text-left">
+                                    <span class="text-sm font-black text-sky-400">${itemKcal}</span>
+                                    <span class="text-[10px] text-slate-400"> سعرة</span>
+                                    <div class="text-[11px] flex gap-2 font-semibold">
+                                        <span class="text-emerald-400">${itemP}P</span>
+                                        <span class="text-amber-400">${itemC}C</span>
+                                        <span class="text-rose-400">${itemF}F</span>
+                                    </div>
+                                </div>
+                                <button onclick="removeIngredientFromPlate('${food.id}')" class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center transition" title="حذف الصنف">
+                                    <i class="fa-solid fa-xmark text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Weight Controls: Slider + Step Buttons + Direct Input -->
+                        <div class="flex items-center gap-3">
+                            <input type="range" min="5" max="500" step="5" value="${Math.min(500, item.grams)}" oninput="updateIngredientGrams('${food.id}', this.value)" class="flex-1">
+                            
+                            <div class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-xl border border-slate-800">
+                                <button onclick="adjustIngredientStep('${food.id}', -${food.stepGrams})" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold">-</button>
+                                <input type="number" min="0" max="1500" value="${item.grams}" onchange="updateIngredientGrams('${food.id}', this.value)" class="w-14 bg-transparent text-center text-xs font-extrabold text-emerald-400 focus:outline-none">
+                                <span class="text-[10px] text-slate-400 ml-1">${food.unitLabel}</span>
+                                <button onclick="adjustIngredientStep('${food.id}', ${food.stepGrams})" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateMealBuilderTotals() {
+            let totalKcal = 0;
+            let totalP = 0;
+            let totalC = 0;
+            let totalF = 0;
+
+            state.plate.forEach(item => {
+                const food = FOOD_DATABASE.find(f => f.id === item.id);
+                if (!food) return;
+                const ratio = item.grams / 100;
+                totalKcal += food.kcal * ratio;
+                totalP += food.protein * ratio;
+                totalC += food.carbs * ratio;
+                totalF += food.fats * ratio;
+            });
+
+            totalKcal = Math.round(totalKcal);
+            totalP = Math.round(totalP);
+            totalC = Math.round(totalC);
+            totalF = Math.round(totalF);
+
+            // Determine comparison target (Single Meal vs Daily Total)
+            const compareMode = document.getElementById('builder-target-select').value;
+            let targetKcal, targetP, targetC, targetF;
+            const titleEl = document.getElementById('builder-comparison-title');
+
+            if (compareMode === 'daily_total') {
+                targetKcal = state.targetCalories;
+                targetP = state.targetProteinG;
+                targetC = state.targetCarbsG;
+                targetF = state.targetFatsG;
+                titleEl.textContent = 'تحليل الوجبة مقارنة بإجمالي الاحتياج اليومي الكامل';
+            } else {
+                if (state.selectedMealCustomTarget) {
+                    targetKcal = state.selectedMealCustomTarget.kcal;
+                    targetP = state.selectedMealCustomTarget.protein;
+                    targetC = state.selectedMealCustomTarget.carbs;
+                    targetF = state.selectedMealCustomTarget.fats;
+                    titleEl.textContent = `تحليل الوجبة مقارنة بهدف "${state.selectedMealCustomTarget.title}"`;
+                } else {
+                    targetKcal = Math.round(state.targetCalories / state.mealCount);
+                    targetP = Math.round(state.targetProteinG / state.mealCount);
+                    targetC = Math.round(state.targetCarbsG / state.mealCount);
+                    targetF = Math.round(state.targetFatsG / state.mealCount);
+                    titleEl.textContent = `تحليل الوجبة مقارنة بمتوسط الوجبة الواحدة (من ${state.mealCount} وجبات)`;
+                }
+            }
+
+            // Update Progress Helper
+            updateSingleProgressBar('kcal', totalKcal, targetKcal, 'سعرة', 'bg-sky-500');
+            updateSingleProgressBar('protein', totalP, targetP, 'جم', 'bg-emerald-500');
+            updateSingleProgressBar('carbs', totalC, targetC, 'جم', 'bg-amber-500');
+            updateSingleProgressBar('fats', totalF, targetF, 'جم', 'bg-rose-500');
+        }
+
+        function updateSingleProgressBar(key, current, target, unit, baseColorClass) {
+            const pct = target > 0 ? Math.round((current / target) * 100) : 0;
+            const clampedWidth = Math.min(100, pct);
+
+            document.getElementById(`meal-total-${key}`).textContent = current;
+            document.getElementById(`meal-target-${key}`).textContent = `${target} ${unit}`;
+            document.getElementById(`meal-pct-${key}`).textContent = `${pct}%`;
+
+            const barEl = document.getElementById(`meal-bar-${key}`);
+            barEl.style.width = `${clampedWidth}%`;
+
+            const statusEl = document.getElementById(`meal-status-${key}`);
+            const diff = target - current;
+
+            if (pct > 110) {
+                barEl.className = `h-full bg-red-500 rounded-full transition-all duration-300`;
+                statusEl.textContent = `تجاوز الهدف بـ ${Math.abs(diff)} ${unit}`;
+                statusEl.className = 'text-red-400 font-semibold';
+            } else if (pct >= 90 && pct <= 110) {
+                barEl.className = `h-full ${baseColorClass} rounded-full transition-all duration-300`;
+                statusEl.textContent = `مثالي ومطابق للهدف ✓`;
+                statusEl.className = 'text-emerald-400 font-bold';
+            } else {
+                barEl.className = `h-full ${baseColorClass} rounded-full transition-all duration-300`;
+                statusEl.textContent = `متبقي ${diff} ${unit}`;
+                statusEl.className = 'text-slate-400';
+            }
+        }
+
+        // ==========================================
+        // 5. CLIPBOARD EXPORT & TOAST NOTIFICATION
+        // ==========================================
+        function copySummaryReport() {
+            const goalAr = state.goal === 'cut' ? 'تنشيف وخسارة دهون' : (state.goal === 'bulk' ? 'تضخيم وبناء عضل' : 'المحافظة على الوزن');
+            const plateSummary = state.plate.map(p => {
+                const f = FOOD_DATABASE.find(x => x.id === p.id);
+                return f ? `- ${f.name}: ${p.grams} ${f.unitLabel}` : '';
+            }).join('\n');
+
+            const reportText = `📊 خطتي الغذائية اليومية (ماكرو برو):
+• الهدف: ${goalAr}
+• السعرات المستهدفة: ${state.targetCalories} سعرة/يوم (سعرات الثبات: ${state.tdee})
+• البروتين: ${state.targetProteinG} جم (${state.pctProtein}%)
+• الكربوهيدرات: ${state.targetCarbsG} جم (${state.pctCarbs}%)
+• الدهون الصحية: ${state.targetFatsG} جم (${state.pctFats}%)
+• عدد الوجبات اليومية: ${state.mealCount} وجبات
+
+🍽️ الوجبة المركبة الحالية:
+${plateSummary || 'لا توجد أصناف مضافة'}`;
+
+            // Use document.execCommand('copy') for reliable iFrame support
+            const textArea = document.createElement('textarea');
+            textArea.value = reportText;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('تم نسخ ملخص خطتك الغذائية والماكروز إلى الحافظة بنجاح!');
+            } catch (err) {
+                showToast('تعذر النسخ التلقائي، يرجى المحاولة مرة أخرى');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        let toastTimeout;
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            const msgEl = document.getElementById('toast-message');
+            msgEl.textContent = message;
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3200);
+        }
+
+        // ==========================================
+        // INITIALIZE ON WINDOW LOAD
+        // ==========================================
+        window.onload = function () {
+            renderFoodDatabase();
+            renderMealPlate();
+            calculateAll();
+        };
+    </script>
+</body>
+</html>
