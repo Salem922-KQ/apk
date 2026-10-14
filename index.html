@@ -36,11 +36,38 @@
     </script>
 
     <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
         body {
             font-family: 'Cairo', 'Tajawal', sans-serif;
             background-color: #070b14;
             color: #f8fafc;
             overflow-x: hidden;
+        }
+
+        button,
+        a,
+        input,
+        select {
+            touch-action: manipulation;
+        }
+
+        @media (max-width: 640px) {
+            button,
+            a {
+                min-height: 44px;
+            }
         }
 
         /* Custom Glassmorphism */

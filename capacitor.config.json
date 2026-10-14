@@ -1,0 +1,8 @@
+{
+  "appId": "com.example.apkwebapp",
+  "appName": "APK Web App",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
