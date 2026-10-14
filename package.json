@@ -1,0 +1,28 @@
+{
+  "name": "apk",
+  "version": "1.0.0",
+  "description": "Capacitor Android wrapper for the existing web app",
+  "scripts": {
+    "test": "echo \"No automated tests configured\"",
+    "prepare:web": "node scripts/sync-web-assets.js",
+    "android:sync": "npm run prepare:web && npx cap sync android",
+    "android:open": "npm run android:sync && npx cap open android",
+    "android:build:debug": "npm run android:sync && cd android && ./gradlew assembleDebug"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://localhost:26831/Salem922-KQ/apk"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
+  },
+  "private": true
+}
